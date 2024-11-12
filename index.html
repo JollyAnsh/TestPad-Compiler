@@ -1,0 +1,659 @@
+<!-- <!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Discussion Portal</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        header {
+            background-color: #0b1e9a;
+            color: white;
+            padding: 1rem;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        main {
+            display: flex;
+            flex: 1;
+        }
+
+        #left-pane {
+            width: 33%;
+            border-right: 1px solid #ccc;
+            padding: 1rem;
+        }
+
+        #right-pane {
+            width: 67%;
+            padding: 1rem;
+        }
+
+        .controls {
+            display: flex;
+            margin-bottom: 1rem;
+        }
+
+        #new-question-btn {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            margin-right: 0.5rem;
+        }
+
+        #search-input {
+            flex: 1;
+            padding: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+        }
+
+        .question-item {
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+        }
+
+        .question-item:hover {
+            background-color: #f0f0f0;
+        }
+
+        form input,
+        form textarea {
+            width: 100%;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+        }
+
+        form textarea {
+            height: 100px;
+        }
+
+        form button {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+        }
+
+        #resolve-btn {
+            background-color: #3B82F6;
+            color: white;
+            border: none;
+            padding: 0.5rem 1rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            float: right;
+            margin-bottom: 1rem;
+        }
+
+        #question-content {
+            background-color: #f0f0f0;
+            border-radius: 0.25rem;
+            padding: 1rem;
+            margin-bottom: 1rem;
+        }
+
+        .response {
+            border: 1px solid #ccc;
+            border-radius: 0.25rem;
+            padding: 0.5rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .response-name {
+            font-weight: bold;
+        }
+    </style>
+</head>
+
+<body>
+    <header>
+        <h1>Discussion Portal</h1>
+    </header>
+    <main>
+        <div id="left-pane">
+            <div class="controls">
+                <button id="new-question-btn">New Question form</button>
+                <input type="text" id="search-input" placeholder="search questions...">
+            </div>
+            <div id="question-list"></div>
+        </div>
+        <div id="right-pane">
+            <div id="welcome-section">
+                <h2>Welcome to Anuj's Discussion Portal !</h2>
+                <p>Enter a subject and question to get started</p>
+                <form id="question-form">
+                    <input type="text" id="subject-input" placeholder="Subject" required>
+                    <textarea id="question-input" placeholder="Question" required></textarea>
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+            <div id="question-detail" style="display: none;">
+                <h2>Question</h2>
+                <div id="question-content"></div>
+                <button id="resolve-btn">Resolve</button>
+                <h3>Response</h3>
+                <div id="responses"></div>
+                <h3>Add Response</h3>
+                <form id="response-form">
+                    <input type="text" id="name-input" placeholder="Enter Name" required>
+                    <textarea id="comment-input" placeholder="Enter Comment" required></textarea>
+                    <button type="submit">Submit</button>
+                </form>
+            </div>
+        </div>
+    </main>
+    <script>
+        let questions = [];
+        let selectedQuestion = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const newQuestionBtn = document.getElementById('new-question-btn');
+            const searchInput = document.getElementById('search-input');
+            const questionForm = document.getElementById('question-form');
+            const responseForm = document.getElementById('response-form');
+            const resolveBtn = document.getElementById('resolve-btn');
+
+            newQuestionBtn.addEventListener('click', showQuestionForm);
+            searchInput.addEventListener('input', handleSearch);
+            questionForm.addEventListener('submit', handleQuestionSubmit);
+            responseForm.addEventListener('submit', handleResponseSubmit);
+            resolveBtn.addEventListener('click', handleResolve);
+
+            renderQuestionList();
+        });
+
+        function showQuestionForm() {
+            document.getElementById('welcome-section').style.display = 'block';
+            document.getElementById('question-detail').style.display = 'none';
+        }
+
+        function handleSearch(e) {
+            const searchQuery = e.target.value.toLowerCase();
+            const filteredQuestions = questions.filter(q =>
+                q.subject.toLowerCase().includes(searchQuery) ||
+                q.text.toLowerCase().includes(searchQuery)
+            );
+            renderQuestionList(filteredQuestions);
+        }
+
+        function handleQuestionSubmit(e) {
+            e.preventDefault();
+            const subject = document.getElementById('subject-input').value;
+            const text = document.getElementById('question-input').value;
+            if (subject && text) {
+                const newQuestion = { id: Date.now(), subject, text, responses: [] };
+                questions.push(newQuestion);
+                renderQuestionList();
+                e.target.reset();
+            }
+        }
+
+        function handleResponseSubmit(e) {
+            e.preventDefault();
+            const name = document.getElementById('name-input').value;
+            const comment = document.getElementById('comment-input').value;
+            if (name && comment && selectedQuestion) {
+                selectedQuestion.responses.push({ name, comment });
+                renderQuestionDetail(selectedQuestion);
+                e.target.reset();
+            }
+        }
+
+        function handleResolve() {
+            if (selectedQuestion) {
+                questions = questions.filter(q => q.id !== selectedQuestion.id);
+                renderQuestionList();
+                showQuestionForm();
+            }
+        }
+
+        function renderQuestionList(filteredQuestions = questions) {
+            const questionList = document.getElementById('question-list');
+            questionList.innerHTML = '';
+            filteredQuestions.forEach(q => {
+                const questionEl = document.createElement('div');
+                questionEl.className = 'question-item';
+                questionEl.innerHTML = `<strong>${q.subject}</strong><br>${q.text}`;
+                questionEl.addEventListener('click', () => renderQuestionDetail(q));
+                questionList.appendChild(questionEl);
+            });
+        }
+
+        function renderQuestionDetail(question) {
+            selectedQuestion = question;
+            document.getElementById('welcome-section').style.display = 'none';
+            document.getElementById('question-detail').style.display = 'block';
+
+            const questionContent = document.getElementById('question-content');
+            questionContent.innerHTML = `<strong>${question.subject}</strong><br>${question.text}`;
+
+            const responses = document.getElementById('responses');
+            responses.innerHTML = '';
+            question.responses.forEach(r => {
+                const responseEl = document.createElement('div');
+                responseEl.className = 'response';
+                responseEl.innerHTML = `<div class="response-name">${r.name}</div>${r.comment}`;
+                responses.appendChild(responseEl);
+            });
+        }
+    </script>
+</body>
+
+</html> -->
+
+
+<!-- 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Profile</title>
+    <style>
+        :root {
+            --bg: #fcfcfc;
+            --card: #ffffff;
+            --text: #18181b;
+            --text-secondary: #71717a;
+            --accent: #2563eb;
+            --radius: 12px;
+            --shadow: 0 2px 8px rgb(0 0 0 / 4%);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #18181b;
+                --card: #27272a;
+                --text: #fafafa;
+                --text-secondary: #a1a1aa;
+                --accent: #60a5fa;
+            }
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+            padding: 32px 24px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 640px;
+            margin: 0 auto;
+        }
+
+        .search-container {
+            background: var(--card);
+            padding: 24px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            margin-bottom: 24px;
+        }
+
+        h1 {
+            font-size: 20px;
+            font-weight: 500;
+            margin-bottom: 16px;
+            color: var(--text);
+        }
+
+        .search-form {
+            display: flex;
+            gap: 8px;
+        }
+
+        input {
+            flex: 1;
+            padding: 12px 16px;
+            font-size: 15px;
+            border: 1px solid #e4e4e7;
+            background: var(--bg);
+            color: var(--text);
+            border-radius: var(--radius);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: var(--accent);
+        }
+
+        button {
+            padding: 12px 24px;
+            background: var(--accent);
+            color: white;
+            border: none;
+            border-radius: var(--radius);
+            font-size: 15px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        .profile {
+            background: var(--card);
+            padding: 32px;
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+
+        .profile-header {
+            display: flex;
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+
+        .avatar {
+            width: 80px;
+            height: 80px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-info h2 {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 4px;
+        }
+
+        .profile-info p {
+            color: var(--text-secondary);
+            font-size: 15px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat {
+            text-align: center;
+            padding: 16px;
+            background: var(--bg);
+            border-radius: var(--radius);
+        }
+
+        .stat-value {
+            font-size: 20px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-bottom: 4px;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: var(--text-secondary);
+        }
+
+        .repos-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+            gap: 16px;
+        }
+
+        .repo-link {
+            padding: 16px;
+            background: var(--bg);
+            color: var(--text);
+            text-decoration: none;
+            border-radius: var(--radius);
+            font-size: 14px;
+            transition: transform 0.2s;
+        }
+
+        .repo-link:hover {
+            transform: translateY(-2px);
+            color: var(--accent);
+        }
+
+        .error {
+            text-align: center;
+            color: var(--text-secondary);
+            padding: 32px;
+            background: var(--card);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="search-container">
+            <h1>GitHub Profile Search</h1>
+            <form id="githubForm" class="search-form">
+                <input type="text" id="username" placeholder="Enter username" required>
+                <button type="submit">Search</button>
+            </form>
+        </div>
+        <div id="userInfo"></div>
+    </div>
+
+    <script>
+        document.getElementById('githubForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const username = document.getElementById('username').value;
+            
+            document.getElementById('userInfo').innerHTML = '';
+
+            fetch(`https://api.github.com/users/${username}`)
+                .then(response => {
+                    if (!response.ok) throw new Error('User not found');
+                    return response.json();
+                })
+                .then(userData => {
+                    const userInfo = document.getElementById('userInfo');
+                    userInfo.innerHTML = `
+                        <div class="profile">
+                            <div class="profile-header">
+                                <img class="avatar" src="${userData.avatar_url}" alt="Profile">
+                                <div class="profile-info">
+                                    <h2>${userData.name || username}</h2>
+                                    <p>@${userData.login}</p>
+                                </div>
+                            </div>
+                            <div class="stats">
+                                <div class="stat">
+                                    <div class="stat-value">${userData.public_repos}</div>
+                                    <div class="stat-label">Repositories</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${userData.followers}</div>
+                                    <div class="stat-label">Followers</div>
+                                </div>
+                                <div class="stat">
+                                    <div class="stat-value">${userData.following}</div>
+                                    <div class="stat-label">Following</div>
+                                </div>
+                            </div>
+                            <div class="repos-grid"></div>
+                        </div>
+                    `;
+                    return fetch(`https://api.github.com/users/${username}/repos`);
+                })
+                .then(response => response.json())
+                .then(repos => {
+                    const reposGrid = document.querySelector('.repos-grid');
+                    repos.forEach(repo => {
+                        const repoLink = document.createElement('a');
+                        repoLink.href = repo.html_url;
+                        repoLink.target = '_blank';
+                        repoLink.className = 'repo-link';
+                        repoLink.textContent = repo.name;
+                        reposGrid.appendChild(repoLink);
+                    });
+                })
+                .catch(error => {
+                    document.getElementById('userInfo').innerHTML = `
+                        <div class="error">
+                            User not found. Please check the username and try again.
+                        </div>
+                    `;
+                });
+        });
+    </script>
+</body>
+</html> -->
+
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Code Compiler Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            text-align: center;
+        }
+        #editor-container {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        #code-editor {
+            width: 100%;
+            height: 300px;
+            font-family: monospace;
+            font-size: 14px;
+            resize: vertical;
+        }
+        #language-select {
+            align-self: flex-end;
+        }
+        #output-console {
+            width: 100%;
+            height: 150px;
+            background-color: #272626;
+            color: #61dafb;
+            font-family: monospace;
+            font-size: 14px;
+            padding: 10px;
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #compile-btn {
+            background-color: #ffc107;
+            border: none;
+            color: #000;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <h1>Type Your Code</h1>
+    <div id="editor-container">
+        <textarea id="code-editor" placeholder="#Write your code"></textarea>
+        <select id="language-select">
+            <option value="0">Python</option>
+            <option value="4">JavaScript</option>
+            <option value="7">C</option>
+            <option value="77">C++</option>
+            <option value="8">Java</option>
+        </select>
+        <div id="output-console">OUTPUT:</div>
+        <button id="compile-btn">Compile</button>
+    </div>
+
+    <script>
+        const codeEditor = document.getElementById('code-editor');
+        const languageSelect = document.getElementById('language-select');
+        const outputConsole = document.getElementById('output-console');
+        const compileBtn = document.getElementById('compile-btn');
+
+        compileBtn.addEventListener('click', () => {
+            const code = codeEditor.value;
+            const langId = languageSelect.value;
+
+            // Send code to server
+            fetch('https://codequotient.com/api/executeCode', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ code, langId }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    outputConsole.textContent = `Error: ${data.error}`;
+                } else {
+                    const codeId = data.codeId;
+                    checkResult(codeId);
+                }
+            })
+            .catch(error => {
+                outputConsole.textContent = `Error: ${error.message}`;
+            });
+        });
+
+        function checkResult(codeId) {
+            const intervalId = setInterval(() => {
+                fetch(`https://codequotient.com/api/codeResult/${codeId}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data?.data?.output || data?.data?.errors) {
+                            clearInterval(intervalId);
+                            if (data.data.output) {
+                                outputConsole.textContent = `Output: ${data.data.output}`;
+                            } else {
+                                outputConsole.textContent = `Error: ${data.data.errors}`;
+                            }
+                        }
+                    })
+                    .catch(error => {
+                        clearInterval(intervalId);
+                        outputConsole.textContent = `Error: ${error.message}`;
+                    });
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
